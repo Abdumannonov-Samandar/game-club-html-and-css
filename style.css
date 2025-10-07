@@ -1,0 +1,36 @@
+body {
+  background: #222;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  margin: 0;
+}
+
+#gameContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-items: center;
+  padding-top: 70px;
+  gap: 20px;
+}
+
+canvas {
+  background: #000;
+  border: 3px solid #fff;
+  display: block;
+  margin-bottom: 8px;
+}
+
+#pongScore, #catchScore {
+  margin-bottom: 18px;
+  font-size: 2rem;
+  letter-spacing: 8px;
+}
+
+h2 {
+  margin: 16px 0 8px 0;
+}
