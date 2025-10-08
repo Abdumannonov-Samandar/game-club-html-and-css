@@ -205,3 +205,194 @@ function catchLoop() {
 	requestAnimationFrame(catchLoop)
 }
 catchLoop()
+
+
+// --- Breakout Game ---
+const breakoutCanvas = document.getElementById('breakoutCanvas')
+const breakoutCtx = breakoutCanvas.getContext('2d')
+const BREAKOUT_WIDTH = breakoutCanvas.width
+const BREAKOUT_HEIGHT = breakoutCanvas.height
+
+const PADDLE_WIDTH_BREAKOUT = 80
+const PADDLE_HEIGHT_BREAKOUT = 10
+const BALL_RADIUS_BREAKOUT = 8
+const BALL_SPEED_BREAKOUT = 4
+const BRICK_ROWS = 5
+const BRICK_COLS = 8
+const BRICK_WIDTH = BREAKOUT_WIDTH / BRICK_COLS - 6
+const BRICK_HEIGHT = 20
+const BRICK_GAP = 2
+
+let breakoutPaddle = {
+	x: BREAKOUT_WIDTH / 2 - PADDLE_WIDTH_BREAKOUT / 2,
+	y: BREAKOUT_HEIGHT - PADDLE_HEIGHT_BREAKOUT - 10,
+}
+
+let breakoutBall = {
+	x: BREAKOUT_WIDTH / 2,
+	y: BREAKOUT_HEIGHT / 2,
+	vx: BALL_SPEED_BREAKOUT,
+	vy: -BALL_SPEED_BREAKOUT,
+}
+
+let breakoutScore = 0
+let breakoutLives = 3
+let breakoutBricks = []
+
+// Breakout bricks initialization
+function initBricks() {
+	breakoutBricks = []
+	for (let row = 0; row < BRICK_ROWS; row++) {
+		breakoutBricks[row] = []
+		for (let col = 0; col < BRICK_COLS; col++) {
+			breakoutBricks[row][col] = {
+				x: col * (BRICK_WIDTH + BRICK_GAP) + BRICK_GAP,
+				y: row * (BRICK_HEIGHT + BRICK_GAP) + BRICK_GAP + 30,
+				status: 1,
+			}
+		}
+	}
+}
+
+// Mouse control for breakout paddle
+breakoutCanvas.addEventListener('mousemove', e => {
+	const rect = breakoutCanvas.getBoundingClientRect()
+	let mouseX = e.clientX - rect.left
+	breakoutPaddle.x = mouseX - PADDLE_WIDTH_BREAKOUT / 2
+	breakoutPaddle.x = Math.max(
+		0,
+		Math.min(BREAKOUT_WIDTH - PADDLE_WIDTH_BREAKOUT, breakoutPaddle.x)
+	)
+})
+
+function drawBreakoutGame() {
+	breakoutCtx.clearRect(0, 0, BREAKOUT_WIDTH, BREAKOUT_HEIGHT)
+
+	// Draw paddle
+	breakoutCtx.fillStyle = 'rgba(161, 216, 216, 1)'
+	breakoutCtx.fillRect(
+		breakoutPaddle.x,
+		breakoutPaddle.y,
+		PADDLE_WIDTH_BREAKOUT,
+		PADDLE_HEIGHT_BREAKOUT
+	)
+
+	// Draw ball
+	breakoutCtx.beginPath()
+	breakoutCtx.arc(
+		breakoutBall.x,
+		breakoutBall.y,
+		BALL_RADIUS_BREAKOUT,
+		0,
+		Math.PI * 2
+	)
+	breakoutCtx.fillStyle = 'rgba(30, 0, 255, 1)'
+	breakoutCtx.fill()
+
+	// Draw bricks
+	for (let row = 0; row < BRICK_ROWS; row++) {
+		for (let col = 0; col < BRICK_COLS; col++) {
+			if (breakoutBricks[row][col].status === 1) {
+				let brick = breakoutBricks[row][col]
+				breakoutCtx.fillStyle = `hsl(${row * 40}, 100%, 50%)`
+				breakoutCtx.fillRect(brick.x, brick.y, BRICK_WIDTH, BRICK_HEIGHT)
+			}
+		}
+	}
+}
+
+function updateBreakoutGame() {
+	breakoutBall.x += breakoutBall.vx
+	breakoutBall.y += breakoutBall.vy
+
+	// Wall collisions
+	if (
+		breakoutBall.x - BALL_RADIUS_BREAKOUT < 0 ||
+		breakoutBall.x + BALL_RADIUS_BREAKOUT > BREAKOUT_WIDTH
+	) {
+		breakoutBall.vx *= -1
+	}
+
+	if (breakoutBall.y - BALL_RADIUS_BREAKOUT < 0) {
+		breakoutBall.vy *= -1
+	}
+
+	// Paddle collision
+	if (
+		breakoutBall.y + BALL_RADIUS_BREAKOUT > breakoutPaddle.y &&
+		breakoutBall.x > breakoutPaddle.x &&
+		breakoutBall.x < breakoutPaddle.x + PADDLE_WIDTH_BREAKOUT
+	) {
+		breakoutBall.vy = -Math.abs(breakoutBall.vy)
+		// Add some horizontal movement based on where the ball hits the paddle
+		let hitPos = (breakoutBall.x - breakoutPaddle.x) / PADDLE_WIDTH_BREAKOUT
+		breakoutBall.vx = (hitPos - 0.5) * 8
+	}
+
+	// Brick collisions
+	for (let row = 0; row < BRICK_ROWS; row++) {
+		for (let col = 0; col < BRICK_COLS; col++) {
+			let brick = breakoutBricks[row][col]
+			if (brick.status === 1) {
+				if (
+					breakoutBall.x + BALL_RADIUS_BREAKOUT > brick.x &&
+					breakoutBall.x - BALL_RADIUS_BREAKOUT < brick.x + BRICK_WIDTH &&
+					breakoutBall.y + BALL_RADIUS_BREAKOUT > brick.y &&
+					breakoutBall.y - BALL_RADIUS_BREAKOUT < brick.y + BRICK_HEIGHT
+				) {
+					breakoutBall.vy *= -1
+					brick.status = 0
+					breakoutScore += 10
+
+					// Check if all bricks are destroyed
+					let allDestroyed = true
+					for (let r = 0; r < BRICK_ROWS; r++) {
+						for (let c = 0; c < BRICK_COLS; c++) {
+							if (breakoutBricks[r][c].status === 1) {
+								allDestroyed = false
+								break
+							}
+						}
+						if (!allDestroyed) break
+					}
+
+					if (allDestroyed) {
+						initBricks()
+						breakoutBall.x = BREAKOUT_WIDTH / 2
+						breakoutBall.y = BREAKOUT_HEIGHT / 2
+						breakoutBall.vx = BALL_SPEED_BREAKOUT
+						breakoutBall.vy = -BALL_SPEED_BREAKOUT
+					}
+				}
+			}
+		}
+	}
+
+	// Ball missed
+	if (breakoutBall.y - BALL_RADIUS_BREAKOUT > BREAKOUT_HEIGHT) {
+		breakoutLives--
+		if (breakoutLives <= 0) {
+			breakoutScore = 0
+			breakoutLives = 1
+			initBricks()
+		}
+		breakoutBall.x = BREAKOUT_WIDTH / 2
+		breakoutBall.y = BREAKOUT_HEIGHT / 2
+		breakoutBall.vx = BALL_SPEED_BREAKOUT
+		breakoutBall.vy = -BALL_SPEED_BREAKOUT
+	}
+
+	document.getElementById('breakoutScoreValue').textContent = breakoutScore
+	document.getElementById('breakoutLives').textContent = breakoutLives
+}
+
+function breakoutLoop() {
+	updateBreakoutGame()
+	drawBreakoutGame()
+	requestAnimationFrame(breakoutLoop)
+}
+
+// Initialize and start the breakout game
+initBricks()
+breakoutLoop()
+
